@@ -1,0 +1,273 @@
+---
+title: "ch3exercises"
+author: "Lauren Temple"
+date: "1/22/2022"
+output: pdf_document
+---
+```{r}
+pacman::p_load(ggplot2)
+```
+
+1. For every one unit increase in sales, tv increases 0.046 on average, we can accept this null hypothesis given the p-value of <0.0001 which is very small. For every one unit increase in sales, radio increases 0.189 on average, we can accept this null hypothesis given the p-value of <0.0001 which is very small. For every one unit increase in sales, newspaper decreases 0.001 on average, we should reject the null hypothesis given the p-value of 0.8599 which is much larger than 0.05 the commonly accepted p-value.
+
+
+2. KNN classifier takes a positive integer K and a test observation x_o, then identifies the K points in the training data that are closest to x_o. Then estimates the conditional probability for class j as the fraction of points in No whose response values equal j, and classifies the test observation x_o to the class with the largest probability. 
+KNN regression involves using a value for K and a prediction point x_o. You first identify the K training observations that are closest to x_o which is represented by No, then estimate f(x_o) using the average of all the training responses. The KNN classifier is used to estimate a conditional probability in order to classify test observations. The KNN regression is used to estimate the value of test observations using the average of all of training responses.
+
+5. 
+
+6. In the case of simple linear regression, the least squares line always passes through the point (¯x, y¯). This is because those are the sample means, 3.4 defines the least squares coefficient estimates which includes the points (¯x, y¯) as terms.
+
+
+11.
+```{r}
+set.seed(42)
+x <- rnorm(100)
+y <- 2 * x + rnorm(100)
+```
+a.
+```{r}
+m1 <- lm(y ~ x + 0)
+summary(m1)
+```
+The coefficient estimate is 2.0245 as x increases by 1 y increases on average by 2.0245.
+The standard error of the coef estimate is 0.0876. This value is small meaning that the distribution of means are not very spread out and thus are more likely to be accurate when compared to the true population mean.
+The t-stat is 23.11 indicating high confidence in the coefficient as a predictor.
+The p-value is less than 2e-16 which is very close to zero and indicates that we can reject the null hypothesis, that the predictor x is associated with changes in the response y.
+
+b.
+```{r}
+m2 <- lm(x ~ y + 0)
+summary(m2)
+```
+The coefficient estimate is 0.4167 as y increases by 1 x increases on average by 0.4167.
+The standard error of the coef estimate is 0.01803. This value is small meaning that the distribution of means are not very spread out and thus are more likely to be accurate when compared to the true population mean.
+The t-stat is 23.11 indicating high confidence in the coefficient as a predictor.
+The p-value is less than 2e-16 which is very close to zero and indicates that we can reject the null hypothesis, that the predictor y is associated with changes in the response x.
+
+c.
+The results from a and b show the same p-values and t-statistics. y = x + e and if you rearrange this you get x = y + e
+
+d.
+```{r}
+(sqrt(length(x)-1) * sum(x*y)) / (sqrt(sum(x*x) * sum(y*y) - (sum(x*y))^2))
+```
+
+e.
+```{r}
+(sqrt(length(y)-1) * sum(x*y)) / (sqrt(sum(y*y) * sum(x*x) - (sum(x*y))^2))
+```
+If you write out the equation for the t-statistic for the regression of x onto y you get the same result as for y onto x. 
+
+f.
+```{r}
+m3 <- lm(y ~ x)
+m4 <- lm(x ~ y)
+summary(m3)
+summary(m4)
+```
+The t-stat is still the same for both of these regressions.
+
+
+
+12.
+a. The coefficient estimate of x onto y is the same as the coefficient estimate of y onto x when the sum of the squares of the observed y-values are equal to the sum of the squares of the observed x-values.
+
+b.
+```{r}
+x1 <- rnorm(100)
+y1 <- 2 * rnorm(100)
+m5 <- lm(y1 ~ x1 + 0)
+m6 <- lm(x1 ~ y1 + 0)
+summary(m5)
+summary(m6)
+```
+
+c.
+```{r}
+set.seed(42)
+x2 <- rnorm(100)
+y2 <- -sample(x2, 100)
+sum(x2^2)
+sum(y2^2)
+m7 <- lm(y2 ~ x2 + 0)
+m8 <- lm(x2 ~ y2 + 0)
+summary(m7)
+summary(m8)
+```
+
+
+13.
+a, b. 
+```{r}
+set.seed(1)
+X <- rnorm(100, 0, 1)
+eps <- rnorm(100, 0, 0.25)
+```
+
+c.
+```{r}
+Y <- -1 + 0.5*X + eps
+length(Y)
+```
+The length of Y is 100, teh value of Bo is -1 and the value of B1 is 0.5
+
+d.
+```{r}
+plot(X,Y)
+```
+From this scatter plot we can see a positive linear relationship between X and Y.
+
+e.
+```{r}
+fit <- lm(Y ~ X)
+summary(fit)
+```
+The predicted values of Bo and B1 are pretty close to the actual values. 
+
+f.
+```{r}
+plot(X, Y)
+abline(fit, lwd= 3, col= 2)
+abline(-1, 0.5, lwd= 3, col= 3)
+legend(-1, legend = c("model fit", "pop. regression"), col=2:3, lwd=3)
+```
+
+g.
+```{r}
+fit2 = lm(Y ~ X + I(X^2))
+summary(fit)
+summary(fit2)
+```
+There is minimal evidence that the quadratic term improves the model fit. The RSE of the linear model is 0.2407 as compared to the polynomial regression model RSE of 0.2395. The adjusted R-squared is not much different either with the linear regression model value being 0.7762 and the polynomial regression model R-squared value being 0.7784. The t-stat for the quadratic term is -1.403 indicating that is is most likely not a good predictor for Y.
+
+h.
+```{r}
+set.seed(42)
+W <- rnorm(100, 0, 1)
+eps1 <- rnorm(100, 0, 0.1) 
+
+Z <- -1 + 0.5*W + eps1
+length(Z)
+
+plot(W, Z)
+```
+
+```{r}
+fit3 <- lm(Z ~ W)
+summary(fit3)
+```
+```{r}
+plot(W, Z)
+abline(fit3, lwd= 3, col= 2)
+abline(-1, 0.5, lwd= 3, col= 3)
+legend(-1, legend = c("model fit", "pop. regression"), col=2:3, lwd=3)
+```
+From this plot we can see that there is in fact less noise. The standard error has decreased indicating a more closely fitting model. The t-stat has increased suggesting that the coefficient estimate is more likely to be close to that of the actual population. 
+i.
+```{r}
+set.seed(42)
+W1 <- rnorm(100, 0, 1)
+eps2 <- rnorm(100, 0, 0.5) 
+
+Z1 <- -1 + 0.5*W1 + eps2
+length(Z1)
+
+plot(W1, Z1)
+```
+
+```{r}
+fit4 <- lm(Z1 ~ W1)
+summary(fit4)
+```
+
+```{r}
+plot(W1, Z1)
+abline(fit4, lwd= 3, col= 2)
+abline(-1, 0.5, lwd= 3, col= 3)
+legend(-1, legend = c("model fit", "pop. regression"), col=2:3, lwd=3)
+```
+From this plot we can see that there is in fact more noise. The standard error has increased indicating a less closely fitting model. The t-stat has decreased suggesting that the coefficient estimate is less likely to be close to that of the actual population.
+
+j.
+```{r}
+confint(fit)
+confint(fit3)
+confint(fit4)
+```
+Decreasing the amount of noise (fit3) results in a smaller confidence interval than the original model (fit). Increasing the amount of noise (fit4) results in a larger confidence interval than the original model (fit)
+
+
+
+
+14. 
+a.
+```{r}
+set.seed(1)
+x1 <- runif(100)
+x2 <- 0.5 * x1 + rnorm(100) / 10
+y <- 2 + 2 *x1 + 0.3 * x2 + rnorm(100)
+```
+B0= 2
+B1 = 2
+B3 = 0.3
+
+b.
+```{r}
+cor(x1, x2)
+```
+
+```{r}
+plot(x1, x2)
+```
+
+c.
+```{r}
+fit14 <- lm(y ~ x1 + x2)
+summary(fit14)
+```
+The estimated coefficients are close to the true coefficients. I would reject the null hypothesis for H0 : B1 = 0 because the  p-value is less than 0.05, however it is very close to 0.05. I would not reject the null hypothesis for H0 : B1 = 0 because the p-value is not less than 0.05.
+
+d.
+```{r}
+fit15 <- lm(y ~ x1)
+summary(fit15)
+```
+Yes you can reject the null hypothesis H0:B1 = 0, the p-value is very small.
+
+e.
+```{r}
+fit17 <- lm(y ~ x2)
+summary(fit17) 
+```
+Yes you can reject the null hypothesis H0:B1 = 0, the p-value is very small.
+
+f.
+The results in c-e do not contradict. Given the existence of collinearity as shown by their correlation, it is difficult to distinguish their effects when they are in the same regression model. When they are looked at separately, the linear relationship between y and x1, x2 is easier to see.
+
+g.
+```{r}
+x1 <- c(x1, 0.1)
+x2 <- c(x2, 0.8)
+y <- c(y, 6)
+```
+
+```{r}
+fit18 <- lm(y ~ x1 + x2)
+plot(fit18)
+summary(fit18)
+```
+The point in the plot above is a leverage point as shown by it being outside of cooks distance. 
+I would no longer reject the null for H0:B1 =0 and I would now reject the null for H0:B2 =0 given the newly calculated p-values.
+
+```{r}
+fit19 <- lm(y ~ x1)
+plot(fit19)
+summary(fit19)
+```
+
+```{r}
+fit20 <- lm(y ~ x2)
+plot(fit20)
+```
+This plot appears to have an outlier as shown by the point that is within cooks distance but much further away from all other residuals. 
