@@ -9,3 +9,69 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+4.6
+a.
+```{r}
+x1 <- 40
+x2 <- 3.5
+
+a <- exp(-6+0.05*x1+x2)
+b <- 1 + a
+px <- a/b
+px*100
+```
+b.
+```{r}
+x1 <- 50
+x2 <- 3.5
+
+a <- exp(-6+0.05*x1+x2)
+b <- 1 + a
+px <- a/b
+px*100
+```
+
+
+4.8 
+I would choose the logistic regression because 
+
+
+
+4.9
+a.
+```{r}
+odd <- 0.37
+odd/(odd+1)
+```
+b.
+```{r}
+px <- .16
+px/(1-px)
+```
+
+
+
+4.13 a-j
+```{r}
+
+```
+
+
+
+4.14 a-h
+```{r}
+
+```
+
+
+4.15 a-f 
+```{r}
+
+```
+
+
+4.16
+```{r}
+
+```
+
