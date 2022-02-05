@@ -1,0 +1,126 @@
+---
+title: "ch5,6exercises"
+author: "Lauren Temple"
+date: "2/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(tidyverse, ggplot2, dplyr, MASS, boot)
+```
+
+5.8
+a.
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- x - 2 * x^2 + rnorm(100)
+```
+
+n= 100
+p=2
+Y= X - 2X^2 + e
+
+b.
+```{r}
+plot(x, y)
+```
+This plot appears to be quadratic and ranges from -2 to 2 on the x axis and -10 to 2 on the y axis.
+
+c.
+```{r}
+set.seed(42)
+data5.8 = data.frame(x, y)
+```
+
+```{r}
+i <- glm(y ~ x)
+cv.glm(data5.8, i)$delta
+```
+
+```{r}
+ii <- glm(y ~ poly(x, 2))
+cv.glm(data5.8, ii)$delta
+```
+
+```{r}
+iii <- glm(y ~ poly(x, 3))
+cv.glm(data5.8, iii)$delta
+```
+
+```{r}
+iv <- glm(y ~ poly(x, 4))
+cv.glm(data5.8, iv)$delta
+```
+
+d.
+```{r}
+set.seed(123)
+data5.8 = data.frame(x, y)
+```
+
+```{r}
+i <- glm(y ~ x)
+cv.glm(data5.8, i)$delta
+```
+
+```{r}
+ii <- glm(y ~ poly(x, 2))
+cv.glm(data5.8, ii)$delta
+```
+
+```{r}
+iii <- glm(y ~ poly(x, 3))
+cv.glm(data5.8, iii)$delta
+```
+
+```{r}
+iv <- glm(y ~ poly(x, 4))
+cv.glm(data5.8, iv)$delta
+```
+
+The results are the same with a different seed because LOOCV evaluates n folds of a single observation.
+
+e.
+The second model, the quadratic one had the lowest LOOCV test error rate due to the fact that it most closely matches the true form of Y we saw in the scatter plot. 
+
+f.
+```{r}
+summary(i)
+```
+
+```{r}
+summary(ii)
+```
+
+```{r}
+summary(iii)
+```
+
+```{r}
+summary(iv)
+```
+
+The p-values show statistical significance for the linear and quadratic terms but not the terms of higher degree polynomials. 
+
+6.2
+```{r}
+
+```
+
+6.9
+```{r}
+
+```
+
+6.10
+```{r}
+
+```
+
+6.11
+```{r}
+
+```
+
