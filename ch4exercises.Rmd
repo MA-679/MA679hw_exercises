@@ -32,10 +32,6 @@ px*100
 ```
 
 
-4.8 
-I would choose the logistic regression because 
-
-
 
 4.9
 a.
@@ -53,25 +49,360 @@ px/(1-px)
 
 4.13 a-j
 ```{r}
-
+library(ISLR2)
+data(Weekly)
 ```
 
-
-
-4.14 a-h
 ```{r}
-
+summary(Weekly)
+```
+```{r}
+library(ggplot2)
+ggplot(Weekly) + geom_jitter(aes(x= Year, y= Volume))
 ```
 
-
-4.15 a-f 
 ```{r}
+ggplot(Weekly) + geom_bar(aes(x= Direction, y= ..count..))
+```
+b.
+```{r}
+fit <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, data= Weekly, family= binomial)
 
+summary(fit)
+```
+Lag 2 appears to be statistically significant.
+
+c.
+```{r}
+fit_prob = predict(fit, type="response")
+
+fit_pred = rep("Down", 1089) # Vector of 1089 "Down" elements.
+fit_pred[fit_prob>0.5] = "Up" # Change "Down" to up when probability > 0.5.
+# Confusion matrix
+attach(Weekly)
+fp <- table(fit_pred, Direction)
+fp
+1 - sum(diag(fp)) / sum(fp)
+```
+The error rate of this model is 0.438 which is pretty close to 0.5 or random guessing
+
+
+d.
+```{r}
+train = (Year < 2009)
+test = Weekly[!train ,]
+Test_Direction= Direction[!train]
+
+fit2 = glm(Direction ~ Lag2, data= Weekly, family= binomial, subset=train)
+
+probs2 = predict(fit2, test, type= "response")
+preds2 = rep("Down", 104) 
+preds2[probs2>0.5] = "Up" 
+
+fp2 <- table(preds2, Test_Direction)
+fp2
+1 - sum(diag(fp2)) / sum(fp2)
+```
+The error rate of this model is 0.375 which is a bit better than the previous model.
+
+e.
+```{r}
+library(MASS)
+lda_fit = lda(Direction ~ Lag2, data= Weekly, subset= train)
+
+lda_pred = predict(lda_fit, test)
+lda_class = lda_pred$class
+
+fp3 <- table(lda_class,Test_Direction)
+fp3
+1 - sum(diag(fp3)) / sum(fp3)
+```
+The error rate of this model is 0.375
+
+f.
+```{r}
+qda_fit = qda(Direction ~ Lag2, data= Weekly, subset= train)
+qda_pred = predict(qda_fit, test)
+qda_class = qda_pred$class
+fp4 <- table(qda_class, Test_Direction)
+fp4
+1 - sum(diag(fp4)) / sum(fp4)
+```
+The error rate of this model is 0.413
+
+g.
+```{r}
+library(class)
+set.seed(1)
+train_knn = Weekly[train,3]
+test_knn = Weekly[!train,3]
+train_direction = Direction[train]
+# Changing from vector to matrix by adding dimensions
+dim(train_knn) = c(985,1)
+dim(test_knn) = c(104,1)
+# Predictions for K=1
+knn_pred = knn(train_knn, test_knn, train_direction, k=1)
+fp5 <- table(knn_pred, Test_Direction)
+fp5
+1 - sum(diag(fp5)) / sum(fp5)
+```
+The error rate of this model is 0.5 which is exactly random guessing.
+
+h.
+```{r}
+library(e1071)
+bayes_fit = naiveBayes(Direction ~ Lag2, data= Weekly, subset= train)
+bayes_pred = predict(bayes_fit, test)
+fp6 <- table(bayes_pred, Test_Direction)
+fp6
+1 - sum(diag(fp6)) / sum(fp6)
+```
+The error rate of this model is 0.413
+
+
+4.14 
+a.
+```{r}
+library(ISLR2)
+library(tidyverse)
+library(dplyr)
+data(Auto)
+df <- Auto
+df$mpg01 <- NA
+median_mpg <- median(df$mpg)
+
+for(i in 1:dim(df)[1]){
+  if (df$mpg[i] > median_mpg){
+    df$mpg01[i] = 1
+  }else{
+    df$mpg01[i] = 0
+  }
+}
+
+
+df <- df %>% relocate(mpg01, .before= mpg)
+```
+
+b.
+```{r}
+library(ggplot2)
+ggplot(df) + geom_point(aes(x= displacement, y=mpg01))
+```
+```{r}
+cor(df[,1:9])
+```
+There is a strong negative correlation between mpg01 and cylinders, displacement, weight, and horsepower.
+
+c.
+```{r}
+set.seed(101)
+split1 <- sample(c(rep(0, 0.7 *nrow(df)), rep(1, 0.3 * nrow(df))))
+split1
+```
+
+```{r}
+traindf <- df[split1 == 0, ]
+testdf <- df[split1 == 1, ]
+```
+
+d.
+```{r}
+library(MASS)
+linear <- lda(mpg01 ~ cylinders + displacement + weight + horsepower, data= traindf)
+```
+
+```{r}
+linearpred <- predict(linear, testdf)
+predictions <- linearpred$class
+actual <- testdf$mpg01
+lintab <- table(predictions, actual)
+1 - sum(diag(lintab)) / sum(lintab)
+```
+
+The test error rate of this model is 0.0763
+
+e.
+```{r}
+quad <- qda(mpg01 ~ cylinders + displacement + weight + horsepower, data= traindf)
+```
+
+```{r}
+quadpred <- predict(quad, testdf)
+qpredictions <- quadpred$class
+qactual <- testdf$mpg01
+quadtab <- table(qpredictions, qactual)
+1 - sum(diag(quadtab)) / sum(quadtab)
+```
+The test error rate of this model is 0.0763
+
+f.
+```{r}
+model <- glm(mpg01 ~ cylinders + displacement + weight + horsepower, family=binomial(link='logit'), data=traindf)
+```
+
+```{r}
+library(ROCR)
+p <- predict(model, newdata= testdf)
+pr <- prediction(p, testdf$mpg01)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+```
+```{r}
+1 - auc
+```
+The test error rate of this  model is 0.02413793
+
+g.
+```{r}
+library(naivebayes)
+df$mpg01 <- as.factor(df$mpg01)
+traindf <- df[split1 == 0, ]
+testdf <- df[split1 == 1, ]
+nb <- naive_bayes(mpg01 ~ cylinders + displacement + weight + horsepower, data = traindf, usekernel = T) 
+```
+
+```{r}
+p <- predict(nb, traindf, type = 'prob')
+head(cbind(p, traindf))
+```
+```{r}
+p2 <- predict(nb, testdf)
+(tab2 <- table(p2, testdf$admit))
+```
+
+h.
+```{r}
+train_mat <- data.matrix(traindf[,c("cylinders", "displacement", "weight", "horsepower")])
+test_mat <- data.matrix(testdf[,c("cylinders", "displacement", "weight", "horsepower")])
+traindf2 <- data.matrix(traindf$mpg01)
+testdf2 <- data.matrix(testdf$mpg01)
+```
+
+```{r}
+library(class)
+knnpred5 <- knn(train_mat, test_mat, traindf2, k= 5)
+tab5 <- table(knnpred5, testdf2)
+1 - sum(diag(tab5)) / sum(tab5)
+```
+The test error rate is 0.0423
+
+```{r}
+knnpred10 <- knn(train_mat, test_mat, traindf2, k= 10)
+tab10 <- table(knnpred10, testdf2)
+1 - sum(diag(tab10)) / sum(tab10)
+```
+The test error  rate is 0.0932
+
+```{r}
+knnpred15 <- knn(train_mat, test_mat, traindf2, k= 15)
+tab15 <- table(knnpred15, testdf2)
+1 - sum(diag(tab15)) / sum(tab15)
+```
+The test error rate is 0.0678
+
+Five K folds seems to give us the best test error rate.
+
+4.15
+a.
+```{r}
+Power <- function(x, a){
+  x <- 2
+  a <- 3
+  print(x^a)
+}
+Power()
+```
+
+b.
+```{r}
+Power2 <- function(x, a){
+  print(x^a)
+}
+Power2(3, 8)
+```
+
+c.
+```{r}
+Power2(10, 3)
+Power2(8, 17)
+Power2(131, 3)
+```
+
+d.
+```{r}
+Power3 <- function(x, a){
+  result = x^a
+  return(result)
+}
+```
+
+e.
+```{r}
+x <- 1:100
+y <- Power3(x, 2)
+plot(x, y, log= "x", main="Plot of x against x^2")
+```
+
+f.
+```{r}
+PlotPower <- function(x, a){
+  x_values = x
+  y_values = x^2
+  plot(x_values, y_values)
+}
+PlotPower(1:10, 3)
 ```
 
 
 4.16
 ```{r}
-
+library(ISLR2)
+data(Boston)
+bosdf <- Boston
+median_crime <- median(Boston$crim)
+bosdf$crim01 <- with(ifelse(crim>median_crime, 1, 0), data= Boston)
 ```
 
+```{r}
+cor(bosdf$crim01, bosdf)
+```
+
+```{r}
+set.seed(42)
+split2 <- sample(c(rep(0, 0.7 *nrow(bosdf)), rep(1, 0.3 * nrow(bosdf))))
+#split2
+```
+
+```{r}
+bostraindf <- bosdf[split2 == 0, ]
+bostestdf <- bosdf[split2 == 1, ]
+```
+
+#lda
+```{r}
+linear <- lda(crim01 ~ indus + nox + rad + age + dis + tax, data= bostraindf)
+```
+
+```{r}
+linearpred <- predict(linear, bostestdf)
+predictions <- linearpred$class
+actual <- bostestdf$crim01
+lintab <- table(predictions, actual)
+1 - sum(diag(lintab)) / sum(lintab)
+```
+
+#qda
+```{r}
+quad <- qda(crim01 ~ indus + nox + rad + age + dis + tax, data= bostraindf)
+```
+
+```{r}
+quadpred <- predict(quad, bostestdf)
+qpredictions <- quadpred$class
+qactual <- bostestdf$crim01
+quadtab <- table(qpredictions, qactual)
+1 - sum(diag(quadtab)) / sum(quadtab)
+```
+I found that QDA performs slightly better than LDA.
