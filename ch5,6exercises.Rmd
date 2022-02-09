@@ -247,9 +247,97 @@ All of the R2 values are around 0.88 or above which means we can be confident in
 
 
 6.10
+a.
+Generate a data set with p = 20 features, n = 1,000 observations, and an associated quantitative response vector generated according to the model Y = Xβ + ϵ, where β has some elements that are exactly equal to zero.
 ```{r}
-
+set.seed(42)
+n <- 1000
+p <- 20
+X <- matrix(rnorm(n*p), n, p)
+B <- sample(-10:10, 20)
+B
 ```
+
+```{r}
+e <- rnorm(1000, mean= 0, sd=0.1)
+Y <- X%*%B + e
+df <- data.frame(X, Y)
+```
+
+
+b.Split your data set into a training set containing 100 observations and a test set containing 900 observations.
+```{r}
+library(caTools)
+sample <- sample.split(df$Y, 0.1)
+train <- subset(df, sample == T)
+test <- subset(df, sample == F)
+```
+
+c. Perform best subset selection on the training set, and plot the training set MSE associated with the best model of each size.
+```{r}
+library(leaps)
+regfit.full <- regsubsets(Y ~ ., data= train, nvmax= 20)
+reg.summary <- summary(regfit.full)
+
+train.mse <- (reg.summary$rss)/length(train)
+```
+
+```{r}
+plot(1:20, train.mse, xlab= "Variables", ylab= "Training MSE", main= "Training MSE vs Number of variables", pch= 1, type= "b")
+```
+
+
+d. Plot the test set MSE associated with the best model of each size.
+```{r}
+library(HH)
+test.mse <- rep(NA, 20)
+
+for(i in 1:20){
+  model <- lm.regsubsets(regfit.full, i)
+  model.pred <- predict(model, newdata= test, type= c("response"))
+  test.mse[i] <- mean((test$Y - model.pred)^2)
+}
+```
+
+```{r}
+plot(1:20, test.mse, xlab= "Variables", ylab= "Test MSE", main= "Test MSE vs Number of Variables", pch= 1, type= "b")
+```
+
+
+e. For which model size does the test set MSE take on its minimum value? Comment on your results. If it takes on its minimum value for a model containing only an intercept or a model containing all of the features, then play around with the way that you are generating the data in (a) until you come up with a scenario in which the test set MSE is minimized for an intermediate model size.
+
+```{r}
+which.min(test.mse)
+```
+
+The minimum test mse occurs at a model size of 19 variables. As the flexibility of this model increases it is a better fit to the data set.
+
+f. How does the model at which the test set MSE is minimized compare to the true model used to generate the data? Comment on the coefficient values.
+```{r}
+coef(regfit.full, 19)
+B
+```
+
+g. Create a plot displaying G)p j=1(βj − βˆr j )2 for a range of values of r, where βˆr j is the jth coefficient estimate for the best model containing r coefficients. Comment on what you observe. How does this compare to the test MSE plot from (d)? 
+```{r}
+B <- as.data.frame(t(B))
+names(B) <- paste0('X', 1:(ncol(B)))
+```
+
+```{r}
+coef.err <- rep(NA, 20)
+for(i in 1:20){
+  a <- coef(regfit.full, i)
+  coef.err[i] <- sqrt(sum(((a[-1] - B[names(a)[-1]])^2)))
+}
+
+plot(1:20, coef.err, xlab= "Variables", ylab= "Coef err", main= "Coef error vs Number of Variables", pch= 1, type= "b")
+```
+
+```{r}
+which.min(coef.err)
+```
+
 
 6.11
 ```{r}
