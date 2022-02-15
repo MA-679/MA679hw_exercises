@@ -2,12 +2,18 @@
 title: "ch5,6exercises"
 author: "Lauren Temple"
 date: "2/3/2022"
-output: html_document
+output: 
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load(tidyverse, ggplot2, dplyr, MASS, boot)
+```
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
 ```
 
 5.8
@@ -340,7 +346,77 @@ which.min(coef.err)
 
 
 6.11
+a. Try out some of the regression methods explored in this chapter, such as best subset selection, the lasso, ridge regression, and PCR. Present and discuss results for the approaches that you consider.
 ```{r}
-
+library(ISLR2)
+data(Boston)
+Boston <- Boston
 ```
+
+lasso
+```{r}
+set.seed(42)
+x <- model.matrix(crim ~ ., Boston)[,-1]
+y <- Boston$crim
+grid <- 10^seq(10, -2, length= 100)
+
+train <- sample(1:nrow(x), nrow(x)/1.3)
+test <- (-train)
+y.test <- y[test]
+```
+
+```{r}
+library(glmnet)
+lasso.mod <- glmnet(x[train,], y[train], alpha = 1, lambda= grid)
+
+cv.out <- cv.glmnet(x[train,], y[train], alpha = 1)
+bestlam.lasso <- cv.out$lambda.min
+
+lasso.pred <- predict(lasso.mod, s= bestlam.lasso, newx = x[test,])
+err.lasso <- mean((lasso.pred - y.test)^2)
+lasso.coef <- predict(lasso.mod, type= "coefficients", s=bestlam.lasso)[1:13,]
+
+lasso.coef
+err.lasso
+bestlam.lasso
+```
+
+ridge
+```{r}
+cv.out <- cv.glmnet(x[train,], y[train], alpha=0)
+bestlam.ridge <- cv.out$lambda.min
+
+glm.mod <- glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh=1e-12)
+glm.pred <- predict(glm.mod, s=bestlam.ridge, newx=x[test,])
+err.ridge <- mean((glm.pred-y.test)^2)
+glm.coef <- predict(glm.mod, type="coefficients", s=bestlam.ridge)[1:13,]
+
+glm.coef
+err.ridge
+bestlam.ridge
+```
+
+pcr
+```{r}
+library(pls)
+pcr.fit <- pcr(crim~., data=Boston, subset=train, scale=T, validation="CV")
+validationplot(pcr.fit, val.type="MSEP")
+
+pcr.pred <- predict(pcr.fit, x[test,], ncomp=8)
+err.pcr <- mean((pcr.pred-y.test)^2)
+
+err.pcr
+```
+
+
+b. Propose a model (or set of models) that seem to perform well on this data set, and justify your answer. Make sure that you are evaluating model performance using validation set error, crossvalidation, or some other reasonable alternative, as opposed to using training error.
+```{r}
+err.all <- c(err.ridge, err.lasso, err.pcr)
+table(err.all, names= c("ridge", "lasso", "pcr"))
+```
+I would use either pcr or lasso since they have the smallest test MSE.
+
+c. Does your chosen model involve all of the features in the data set? Why or why not?
+
+The lasso model involves 11 variables, one of them resulted in a zero coefficient.
 

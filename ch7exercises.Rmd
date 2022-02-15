@@ -1,0 +1,44 @@
+---
+title: "ch7exercises"
+author: "Lauren Temple"
+date: "2/15/2022"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+7.2
+```{r}
+
+```
+
+
+
+7.9
+```{r}
+
+```
+
+
+
+
+7.10
+```{r}
+
+```
+
+
+
+
+
+7.11
+```{r}
+
+```
+
+
+
