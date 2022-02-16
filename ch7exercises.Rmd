@@ -11,19 +11,143 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-7.2
+7.3
 ```{r}
-
+x <- -2:2
+y <- 1 + x + -2 * I(x>1)
+plot(x,y)
 ```
 
+```{r}
+X <- seq(-2,2,0.1)
+Y <- rep(NA, length(X))
+
+for(i in 1:length(X)){
+  if(X[i]<1){
+    Y[i] = 1 + 1*X[i]
+  }
+  else{
+    Y[i] = 1 + 1*X[i] - 2 * (X[i]-1)^2
+  }
+}
+
+plot(X, Y, type= 'l')
+abline(h= 0); abline(v= 1, col= "red")
+grid()
+```
+The line has a slope of 1 before X>1 and is linear. After X>1 the line has a quadratic shape and the slope changes.
 
 
 7.9
 ```{r}
+library(ISLR2)
+data(Boston)
+Boston <- Boston
+```
 
+a. Use the poly() function to fit a cubic polynomial regression to predict nox using dis. Report the regression output, and plot the resulting data and polynomial fits.
+```{r}
+plot(Boston$dis, Boston$nox, xlab= "Distance", ylab= "Nox Values")
+
+model1 <- glm(nox~ poly(dis, 3), data= Boston)
+summary(model1)
+
+dis.grid <- seq(from= min(Boston$dis), to= max(Boston$dis), 0.2)
+preds <- predict(model1, newdata= list(dis= dis.grid), se= T)
+
+lines(dis.grid, preds$fit, col= "blue", lwd= 3)
+lines(dis.grid, preds$fit + 2*preds$se, col= "blue", lwd= 3, lty= 2)
+lines(dis.grid, preds$fit - 2*preds$se, col="blue", lwd=3, lty=2)
 ```
 
 
+b. Plot the polynomial fits for a range of different polynomial degrees (say, from 1 to 10), and report the associated residual sum of squares.
+
+```{r}
+plot(1:10,rss,xlab="Polynomial degree", ylab="RSS", main="RSS on test set vs polynomial degree", type='b')
+```
+
+The minimum RSS value occurs at the degree 3 polynomial
+
+c. Perform cross-validation or another approach to select the optimal degree for the polynomial, and explain your results.
+```{r}
+library(caTools)
+set.seed(42)
+boston_sample <- sample.split(Boston$dis, SplitRatio = 0.80)
+boston_train <- subset(Boston, boston_sample == TRUE) 
+boston_test <- subset(Boston, boston_sample == FALSE)
+```
+
+```{r}
+rss <- rep(0,10)
+colors <- rainbow(10)
+plot(Boston$dis, Boston$nox, xlab= "Distance", ylab= "Nox values", main= "Polynomial fits from degree 1-10.")
+for (i in 1:10){
+  model = glm(nox~poly(dis,i), data= boston_train)
+  rss[i] = sum((boston_test$nox - predict(model, newdata= list(dis= boston_test$dis)))^2)
+  preds = predict(model, newdata= list(dis= dis.grid))
+  lines(dis.grid, preds, col= colors[i],  lwd=2, lty=1)
+}
+legend(10, 0.8, legend= 1:10, col= colors[1:10], lty=1, lwd=2)
+```
+
+```{r}
+rss
+```
+
+
+d. Use the bs() function to fit a regression spline to predict nox using dis. Report the output for the fit using four degrees of freedom. How did you choose the knots? Plot the resulting fit.
+```{r}
+library(splines)
+spline.fit <- lm(nox ~ bs(dis, df= 4), data= Boston)
+summary(spline.fit)
+attr(bs(Boston$dis, df= 4), "knots")
+```
+
+```{r}
+plot(Boston$dis, Boston$nox, xlab= "Distance", ylab= "Nox Values")
+preds <- predict(spline.fit, newdata= list(dis= dis.grid), se= T)
+
+lines(dis.grid, preds$fit, col= "blue", lwd= 3)
+lines(dis.grid, preds$fit + 2*preds$se, col= "blue", lwd= 3, lty= 2)
+lines(dis.grid, preds$fit - 2*preds$se, col="blue", lwd=3, lty=2)
+
+```
+
+e. Now fit a regression spline for a range of degrees of freedom, and plot the resulting fits and report the resulting RSS. Describe the results obtained.
+```{r}
+rss <- rep(0,18)
+colors <- rainbow(18)
+plot(Boston$dis, Boston$nox, xlab= "Distance", ylab= "Nox Values")
+
+for(i in 3:20){
+  spline.model = lm(nox~bs(dis, df=i), data= boston_train)
+  rss[i-2] = sum((boston_test$nox - predict(spline.model, newdata= list(dis= boston_test$dis)))^2)
+  preds= predict(spline.model, newdata= list(dis= dis.grid))
+  lines(dis.grid, preds, col= colors[i-2], lwd=2, lty=1)
+}
+legend(10, 0.8, legend= 3:20, col= colors[1:18],lty= 1, lwd= 2)
+
+```
+
+```{r}
+which.min(rss)+2
+```
+
+
+f. Perform cross-validation or another approach in order to select the best degrees of freedom for a regression spline on this data. Describe your results.
+
+```{r, message=FALSE, warning=FALSE}
+library(boot)
+set.seed(42)
+cv.err = rep(0,18)
+  
+for(j in 3:20){
+    fit= glm(nox~bs(dis, df= j), data= Boston)
+    cv.err[j-2] = cv.glm(Boston, fit, K=10)$delta[1]
+}
+which.min(cv.err)+2
+```
 
 
 7.10
