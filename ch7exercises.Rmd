@@ -62,6 +62,26 @@ lines(dis.grid, preds$fit - 2*preds$se, col="blue", lwd=3, lty=2)
 
 
 b. Plot the polynomial fits for a range of different polynomial degrees (say, from 1 to 10), and report the associated residual sum of squares.
+```{r}
+library(caTools)
+set.seed(42)
+boston_sample <- sample.split(Boston$dis, SplitRatio = 0.80)
+boston_train <- subset(Boston, boston_sample == TRUE) 
+boston_test <- subset(Boston, boston_sample == FALSE)
+```
+
+```{r}
+rss <- rep(0,10)
+colors <- rainbow(10)
+plot(Boston$dis, Boston$nox, xlab= "Distance", ylab= "Nox values", main= "Polynomial fits from degree 1-10.")
+for (i in 1:10){
+  model = glm(nox~poly(dis,i), data= boston_train)
+  rss[i] = sum((boston_test$nox - predict(model, newdata= list(dis= boston_test$dis)))^2)
+  preds = predict(model, newdata= list(dis= dis.grid))
+  lines(dis.grid, preds, col= colors[i],  lwd=2, lty=1)
+}
+legend(10, 0.8, legend= 1:10, col= colors[1:10], lty=1, lwd=2)
+```
 
 ```{r}
 plot(1:10,rss,xlab="Polynomial degree", ylab="RSS", main="RSS on test set vs polynomial degree", type='b')
@@ -70,13 +90,6 @@ plot(1:10,rss,xlab="Polynomial degree", ylab="RSS", main="RSS on test set vs pol
 The minimum RSS value occurs at the degree 3 polynomial
 
 c. Perform cross-validation or another approach to select the optimal degree for the polynomial, and explain your results.
-```{r}
-library(caTools)
-set.seed(42)
-boston_sample <- sample.split(Boston$dis, SplitRatio = 0.80)
-boston_train <- subset(Boston, boston_sample == TRUE) 
-boston_test <- subset(Boston, boston_sample == FALSE)
-```
 
 ```{r}
 rss <- rep(0,10)
@@ -152,17 +165,186 @@ which.min(cv.err)+2
 
 7.10
 ```{r}
+data("College")
+College <- College
+```
 
+a. Split the data into a training set and a test set. Using out-of-state tuition as the response and the other variables as the predictors, perform forward stepwise selection on the training set in order to identify a satisfactory model that uses just a subset of the predictors.
+```{r}
+set.seed(42)
+college_sample <- sample.split(College$Outstate, SplitRatio = 0.80)
+college_train <- subset(College, college_sample == TRUE)
+college_test <- subset(College, college_sample == FALSE)
+```
+
+```{r}
+library(leaps)
+fit.fwd <- regsubsets(Outstate ~ ., data= college_train, nvmax= 17, method= "forward")
+fit.summary <- summary(fit.fwd)
+```
+
+```{r}
+which.min(fit.summary$cp)
+which.min(fit.summary$bic)
+which.min(fit.summary$adjr2)
+```
+
+```{r}
+par(mfrow= c(2,2))
+plot(1:17, fit.summary$cp,xlab="Variables",ylab="Cp",main="Cp", type='b')
+plot(1:17, fit.summary$bic,xlab="Variables",ylab="BIC",main="BIC", type='b')
+plot(1:17, fit.summary$adjr2,xlab="Variables",ylab="Adjusted R2",main="Adjusted R2", type='b')
+```
+All three show that after a model with 6 variables there is little improvement
+
+```{r}
+coef(fit.fwd, 6)
 ```
 
 
+b. Fit a GAM on the training data, using out-of-state tuition as the response and the features selected in the previous step as the predictors. Plot the results, and explain your findings.
+```{r}
+library(akima)
+library(gam)
 
+gam.model1 <- gam(Outstate ~ Private + 
+                    s(Room.Board, 4)+
+                    s(PhD, 4)+
+                    s(perc.alumni, 2)+
+                    s(Expend, 4)+
+                    s(Grad.Rate, 5), data= college_train)
+
+par(mfrow= c(2,3))
+plot(gam.model1, col= "blue", se= T)
+```
+Holding all the other variables fixed, out of state tuition increases as room and board and perc.alumni increases. 
+
+
+c. Evaluate the model obtained on the test set, and explain the results obtained.
+```{r}
+pred <- predict(gam.model1, newdata= college_test)
+mse <- mean((college_test$Outstate - pred)^2); mse
+```
+
+d. For which variables, if any, is there evidence of a non-linear relationship with the response?
+```{r}
+gam.model2 <- gam(Outstate~ Private+
+                    s(Room.Board,4)+
+                    s(PhD,4)+
+                    s(perc.alumni,2)+
+                    s(Expend,4), data= college_train)
+gam.model3 <- gam(Outstate~ Private+
+                    s(Room.Board,4)+
+                    s(PhD,4)+
+                    s(perc.alumni,2)+
+                    s(Expend,4)+
+                    Grad.Rate, data=college_train) 
+gam.model4 <- gam(Outstate~ Private+
+                    s(Room.Board,4)+
+                    s(PhD,4)+
+                    s(perc.alumni,2)+
+                    s(Expend,4)+
+                    s(Grad.Rate,4), data= college_train)
+
+anova(gam.model2, gam.model3, gam.model4, gam.model1, test= "F")
+```
+
+A GAM that includes Grad.Rate shows evidence of a non-linear function
 
 
 7.11
+a. Generate a response Y and two predictors X1 and X2, with n = 100.
 ```{r}
+x1 <- rnorm(100, sd=2)
+x2 <- rnorm(100, sd= sqrt(2))
+eps <- rnorm(100, sd= 1)
+b0 <- 5
+b1 <- 2.5
+b2 <- 11.5
+y <- b0 + b1*x1 + b2*x2 +eps
+```
 
+b. Initialize βˆ1 to take on a value of your choice. It does not matter what value you choose.
+
+```{r}
+beta1 <- 0.4
+```
+
+c. Keeping βˆ1 fixed, fit the model Y − βˆ1X1 = β0 + β2X2 + ϵ.
+ 
+```{r}
+z <- y - beta1 *x1
+beta2 <- lm(z~ x2)$coef[2]
+beta2
+```
+
+d. Keeping βˆ2 fixed, fit the model Y − βˆ2X2 = β0 + β1X1 + ϵ.
+ 
+```{r}
+z <- y - beta2*x2
+beta1 <- lm(z ~ x1)$coef[2]
+beta1
+```
+
+e. Write a for loop to repeat (c) and (d) 1,000 times. Report the estimates of βˆ0, βˆ1, and βˆ2 at each iteration of the for loop. Create a plot in which each of these values is displayed, with βˆ0, βˆ1, and βˆ2 each shown in a different color.
+```{r}
+beta.df <- data.frame("beat0"= rep(0, 1000), "beta1"= rep(0,1000), "beta2"= rep(0,1000))
+beta1 <- 0.4
+
+for(i in 1:1000){
+  z= y - beta1*x1
+  model= lm(z~ x2)
+  beta2= model$coef[2]
+  beta.df$beta1[i]= beta2
+  
+  z= y- beta2*x2
+  model = lm(z ~ x1)
+  beta1 = model$coef[2]
+  beta.df$beta1[i]= beta1
+ 
+  beta.df$beta0[i]= model$coef[1]
+}
+```
+
+```{r}
+beta.df$beta0[5]
+beta.df$beta1[5]
+beta.df$beta2[5]
 ```
 
 
+```{r}
+plot(1:1000, beta.df$beta2, ylim=range(0:12), type='l', lwd="3", col= "blue", xlab= "Iteration", ylab= "Coefficient value")
+title("Coefficients found by iterating, and overlaid values from lm() function.")
+lines(1:1000, beta.df$beta1,  col= "red", lwd=3)
+lines(1:1000, beta.df$beta0, col= "green", lwd=3)
+```
+
+
+f. Compare your answer in (e) to the results of simply performing multiple linear regression to predict Y using X1 and X2. Use the abline() function to overlay those multiple linear regression coefficient estimates on the plot obtained in (e).
+```{r}
+lm.fit = lm(y~ x1+x2)
+coef(lm.fit)
+```
+
+
+```{r}
+plot(1:1000, beta.df$beta2, ylim=range(0:12), type='l', lwd="3", col= "blue", xlab= "Iteration", ylab= "Coefficient value")
+title("Coefficients found by iterating, and overlaid values from lm() function.")
+lines(1:1000, beta.df$beta1,  col= "red", lwd=3)
+lines(1:1000, beta.df$beta0, col= "green", lwd=3)
+
+abline(h= 5.024999, lty= 2, lwd=2)
+abline(h= 2.510918, lty= 2, lwd=2, col="yellow")
+abline(h=0, lty=2, lwd=2, col="green")
+legend(900,10, legend=c("beta0", "beta1", "beta2", "beta0.lm", "beta1.lm", "beta2.lm"),
+       col=c("green","red","blue","black","yellow","green"), lty = c(1,1,1,2,2,2), xpd=T)
+```
+The coefficients found by multiple linear regression match the ones found by iteration.
+
+
+g. On this data set, how many backfitting iterations were required in order to obtain a “good” approximation to the multiple regression coefficient estimates?
+```{r}
+
+```
 
