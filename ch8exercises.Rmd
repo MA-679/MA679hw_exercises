@@ -151,8 +151,20 @@ The most important variables are price and shelf location as we saw previously. 
 
 e. Use random forests to analyze this data. What test MSE do you obtain? Use the importance() function to determine which variables are most important. Describe the effect of m, the number of variables considered at each split, on the error rate obtained.
 ```{r}
+rf1.carseats <- randomForest(Sales~., data= train.set, mtry= 10/2, importance= T)
+rf2.carseats <- randomForest(Sales~., data= train.set, mtry= sqrt(10), importance= T)
+rf3.carseats <- randomForest(Sales~., data= train.set, mtry= 10/4, importance= T)
 
+importance(rf1.carseats)
+importance(rf2.carseats)
+importance(rf3.carseats)
+
+varImpPlot(rf1.carseats)
+varImpPlot(rf2.carseats)
+varImpPlot(rf3.carseats)
 ```
+All models show that the most important variables are Shelve Location and Price. As m decreases the MSE becomes smaller.
+
 
 f. Now analyze the data using BART, and report your results.
 ```{r}
@@ -163,16 +175,45 @@ f. Now analyze the data using BART, and report your results.
 8.11 Caravan data set
 a. Create a training set consisting of the first 1,000 observations, and a test set consisting of the remaining observations.
 ```{r}
-
+Caravan$Purchase01=rep(NA, 5822)
+for(i in 1:5822) if (Caravan$Purchase[i] == "Yes")
+  (Caravan$Purchase01[i]=1) else (Caravan$Purchase01[i]=0)
 ```
+
+```{r}
+train.set <- Caravan[1:1000, ]
+test.set <- Caravan[1001:5822, ]
+```
+
 
 b. Fit a boosting model to the training set with Purchase as the response and the other variables as predictors. Use 1,000 trees, and a shrinkage value of 0.01. Which predictors appear to be the most important?
 ```{r}
+set.seed(42)
+boost.Caravan <- gbm(Purchase01~.-Purchase, data= train.set, distribution= "bernoulli", n.trees= 1000, shrinkage= 0.01)
 
+summary(boost.Caravan)
 ```
+PPERSAUT, MKOOPKLA are the most important variables according to this booting.
 
 c. Use the boosting model to predict the response on the test data. Predict that a person will make a purchase if the estimated probability of purchase is greater than 20 %. Form a confusion matrix. What fraction of the people predicted to make a purchase do in fact make one? How does this compare with the results obtained from applying KNN or logistic regression to this data set?
 ```{r}
+probs.Caravan <- predict(boost.Caravan, newdata= test.set, n.trees= 1000, type="response")
 
+preds <- rep("No", 4822)
+preds[probs.Caravan>0.20]="Yes"
+
+#Confusion Matrix
+actual <- test.set$Purchase
+table(actual, preds)
 ```
+The model predicted yes 150 times, out of those it was a true positive 32 times, giving it a rate of 21.33%.
 
+
+```{r}
+glm.fit <- glm(Purchase~.-Purchase01, data= train.set, family= binomial)
+glm.probs <- predict(glm.fit, test.set, type="response")
+glm.preds <- rep("No", 4822)
+glm.preds[glm.probs>0.2]="Yes"
+table(actual, glm.preds)
+```
+Logistic regression predicts yes a total of 408 times, 58 of those are true positives, giving it a rate of 14.22% which is less than that of boosting.
