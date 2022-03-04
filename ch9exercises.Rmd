@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-pacman::p_load(e1071, ROCR, ISLR2)
+pacman::p_load(e1071, ROCR, ISLR2, caTools)
 ```
 
 9.3 Here we explore the maximal margin classifier on a toy data set.
@@ -91,119 +91,230 @@ We have seen that we can fit an SVM with a non-linear kernel in order to perform
 
 a. Generate a data set with n = 500 and p = 2, such that the observations belong to two classes with a quadratic decision boundary between them. 
 ```{r}
-
+set.seed(42)
+x1 <- runif(500)-0.5
+x2 <- runif(500)-0.5
+y <- 1*(x1^2-x2^2 > 0)
+df <- data.frame(x1= x1, x2= x2, y=as.factor(y))
+head(df)
 ```
 
 b. Plot the observations, colored according to their class labels. Your plot should display X1 on the x-axis, and X2 on the yaxis.
 ```{r}
-
+plot(x1, x2, col= (2 - y))
 ```
 
 c. Fit a logistic regression model to the data, using X1 and X2 as predictors.
 ```{r}
-
+glm.fit <- glm(y~ x1+x2, data= df, family= 'binomial')
 ```
 
 d. Apply this model to the training data in order to obtain a predicted class label for each training observation. Plot the observations, colored according to the predicted class labels. The decision boundary should be linear.
 ```{r}
+glm.probs <- predict(glm.fit, newdata= df, type= 'response')
+glm.preds <- rep(0, 500)
+glm.preds[glm.probs>0.5] = 1
 
+table(preds= glm.preds, truth= df$y)
+
+plot(x1, x2, col= 2-glm.preds)
 ```
 
 e. Now fit a logistic regression model to the data using non-linear functions of X1 and X2 as predictors (e.g. X2 1 , X1×X2, log(X2), and so forth). 
 ```{r}
-
+glm.fit <- glm(y~I(x1^2)+I(x2^2), data = df, family = 'binomial')
 ```
 
 f. Apply this model to the training data in order to obtain a predicted class label for each training observation. Plot the observations, colored according to the predicted class labels. The decision boundary should be obviously non-linear. If it is not, then repeat (a)-(e) until you come up with an example in which the predicted class labels are obviously non-linear.
 ```{r}
+glm.probs <- predict(glm.fit, newdata= df, type= 'response')
+glm.preds <- rep(0,500)
+glm.preds[glm.probs>0.5] = 1
 
+table(preds= glm.preds, truth=df$y)
+
+plot(x1, x2, col=2-glm.preds)
 ```
 
 g. Fit a support vector classifier to the data with X1 and X2 as predictors. Obtain a class prediction for each training observation. Plot the observations, colored according to the predicted class labels.
 ```{r}
-
+tune.out <- tune(svm, y~., data=df, kernel='linear', ranges= list(cost=c(0.001, 0.01, 0.1, 1, 5, 10, 100)))
+bestmod <- tune.out$best.model
 ```
+
+```{r}
+ypred <- predict(bestmod, newdata= df, type='response')
+table(predict=ypred, truth=df$y)
+plot(x1, x2, col=ypred)
+```
+
 
 h. Fit a SVM using a non-linear kernel to the data. Obtain a class prediction for each training observation. Plot the observations, colored according to the predicted class labels.
 ```{r}
-
+tune.out <- tune(svm, y~., data=df, kernel='radial', ranges= list(cost=c(0.1, 1, 10, 100, 1000), gamma=c(0.5, 1, 2, 3, 4)))
+bestmod <- tune.out$best.model
 ```
+
+```{r}
+ypred <- predict(bestmod, newdata=df, type='response')
+table(predict= ypred, truth= df$y)
+plot(x1, x2, col= ypred)
+```
+
 
 i. Comment on your results.
-```{r}
 
-```
-
+Logistic regression with non-linear terms and SVM with a radial kernel outperform the models using linear terms. The Logistic regression with non-linear terms and SVM with a radial kernel models achieve almost perfect accuracy in predicting the class of the training observations.
 
 9.7
 In this problem, you will use support vector approaches in order to predict whether a given car gets high or low gas mileage based on the Auto data set.
 
 a. Create a binary variable that takes on a 1 for cars with gas mileage above the median, and a 0 for cars with gas mileage below the median.
 ```{r}
+set.seed(42)
+auto.length <- length(Auto$mpg)
+mpg.median <- median(Auto$mpg)
+mpg01 <- rep(NA, auto.length)
 
+for(i in 1:auto.length) if (Auto$mpg[i] > mpg.median) mpg01[i]= 1 else mpg01[i]= 0
+
+auto.df <- Auto
+auto.df$mpg01 <- as.factor(mpg01)
 ```
 
 b. Fit a support vector classifier to the data with various values of cost, in order to predict whether a car gets high or low gas mileage. Report the cross-validation errors associated with different values of this parameter. Comment on your results. Note you will need to fit the classifier without the gas mileage variable to produce sensible results.
 ```{r}
-
+linear.tune <- tune(svm, mpg01~., data= auto.df, kernel= 'linear', ranges= list(cost=c(0.001, 0.01, 0.1, 1, 5, 10, 100, 1000)))
+summary(linear.tune)
 ```
+Training CV error decreases as cost increases with minimum at cost=1 then it begins to increase.
+
 
 c. Now repeat (b), this time using SVMs with radial and polynomial basis kernels, with different values of gamma and degree and cost. Comment on your results. 
 ```{r}
+set.seed(42)
+radial.tune <- tune(svm, mpg01~., data= auto.df, kernel='radial', ranges= list(cost=c(0.1, 1, 10, 100, 1000), gamma=c(0.5, 1, 2, 3, 4)))
 
+radial.tune$best.parameters
+radial.tune$best.performance
 ```
+
+Training CV is lowest for a radial model with cost=10 and gamma=0.5
+
+```{r}
+set.seed(42)
+poly.tune <- tune(svm, mpg01~., data= auto.df, kernel='polynomial', ranges=list(cost=c(0.1, 1, 10, 100, 1000), degree=c(1, 2, 3, 4, 5)))
+
+poly.tune$best.parameters
+poly.tune$best.performance
+```
+The training error is minimized with cost= 1000 and degree= 1
 
 d. Make some plots to back up your assertions in (b) and (c).
 ```{r}
 
 ```
 
-
 9.8
 This problem involves the OJ data set which is part of the ISLR2 package.
 ```{r}
-
+data(OJ)
+OJ <- OJ
 ```
 
 (a) Create a training set containing a random sample of 800 observations, and a test set containing the remaining observations. 
 ```{r}
-
+sample.data <- sample.split(OJ$Purchase, SplitRatio = 800/length(OJ$Purchase))
+train.set <- subset(OJ, sample.data==T)
+test.set <- subset(OJ, sample.data==F)
 ```
 
 b. Fit a support vector classifier to the training data using cost = 0.01, with Purchase as the response and the other variables as predictors. Use the summary() function to produce summary statistics, and describe the results obtained. 
 ```{r}
-
+svm.fit <- svm(Purchase~., data= train.set, kernel='linear', cost=0.01)
+summary(svm.fit)
 ```
+There are a large number of support vectors out of 800 observations, 216 belong to CH, 215 belong to MM.
 
 c. What are the training and test error rates? 
 ```{r}
-
+svm.pred <- predict(svm.fit, train.set)
+er1 <- table(predict= svm.pred, truth= train.set$Purchase)
+1 - sum(diag(er1)) / sum(er1)
 ```
+```{r}
+svm.pred <- predict(svm.fit, test.set)
+er2 <- table(predict= svm.pred, truth= test.set$Purchase)
+1 - sum(diag(er2)) / sum(er2)
+```
+
 
 d. Use the tune() function to select an optimal cost. Consider values in the range 0.01 to 10. 
 ```{r}
-
+set.seed(42)
+tune.out <- tune(svm, Purchase~., data=train.set, kernel= 'linear', range= list(cost=c(0.01, 0.1, 0.5, 1, 10)))
 ```
 
 
 e. Compute the training and test error rates using this new value for cost. 
 ```{r}
+svm.pred <- predict(tune.out$best.model, train.set)
+er <- table(predict= svm.pred, truth= train.set$Purchase)
 
+1 - sum(diag(er)) / sum(er)
 ```
+
+```{r}
+svm.pred <- predict(tune.out$best.model, test.set)
+er <- table(predict= svm.pred, truth= test.set$Purchase)
+
+1 - sum(diag(er)) / sum(er)
+```
+
+Using the optimal value of cost results in a slightly increased test error rate.
 
 f. Repeat parts (b) through (e) using a support vector machine with a radial kernel. Use the default value for gamma. 
 ```{r}
-
+set.seed(42)
+tune.out <- tune(svm, Purchase~., data= train.set, kernel='radial', ranges=list(cost=c(0.01, 0.1, 0.5, 1, 10)))
 ```
+
+```{r}
+svm.pred <- predict(tune.out$best.model, train.set)
+er <- table(predict= svm.pred, truth= train.set$Purchase)
+
+1 - sum(diag(er)) / sum(er)
+```
+
+```{r}
+svm.pred <- predict(tune.out$best.model, test.set)
+er <- table(predict= svm.pred, truth= test.set$Purchase)
+
+1 - sum(diag(er)) / sum(er)
+```
+
 
 g. Repeat parts (b) through (e) using a support vector machine with a polynomial kernel. Set degree = 2. 
 ```{r}
-
+set.seed(42)
+tune.out <- tune(svm, Purchase~., data= train.set, kernel= 'polynomial', ranges= list(cost=c(0.01, 0.1, 0.5, 1, 10)), degree=2)
 ```
+
+```{r}
+svm.pred <- predict(tune.out$best.model, train.set)
+er <- table(predict= svm.pred, truth= train.set$Purchase)
+
+1 - sum(diag(er)) / sum(er)
+```
+
+```{r}
+svm.pred <- predict(tune.out$best.model, test.set)
+er <- table(predict= svm.pred, truth= test.set$Purchase)
+
+1 - sum(diag(er)) / sum(er)
+```
+
 
 h. Overall, which approach seems to give the best results on this data?
-```{r}
 
-```
-
- 
+Overall the radial kernel seems to be producing minimum misclassification error on both training and test data.
