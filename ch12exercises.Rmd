@@ -88,25 +88,37 @@ summary(pcob)
 
 (a) Using hierarchical clustering with complete linkage and Euclidean distance, cluster the states. 
 ```{r}
-
+hc.complete <- hclust(dist(x), method= "complete"); hc.complete
 ```
 
 (b) Cut the dendrogram at a height that results in three distinct clusters. Which states belong to which clusters?
 
 ```{r}
-
+plot(hc.complete)
 ```
+
+```{r}
+cutree(hc.complete, 3)
+```
+
 
 (c) Hierarchically cluster the states using complete linkage and Euclidean distance, after scaling the variables to have standard deviation one. 
 ```{r}
-
+xsc <- scale(x)
+s.hc.complete <- hclust(dist(xsc), method= "complete")
+plot(s.hc.complete)
+```
+```{r}
+cutree(s.hc.complete, 3)
 ```
 
 (d) What effect does scaling the variables have on the hierarchical clustering obtained? In your opinion, should the variables be scaled before the inter-observation dissimilarities are computed? Provide a justification for your answer.
 ```{r}
-
+par(mfrow = c(1,2))
+plot(hc.complete)
+plot(s.hc.complete)
 ```
- 
+I notice a slight difference between height on the scaled hierarchical clusters vs the un-scaled. 
 
 12.10 In this problem, you will generate simulated data, and then perform PCA and K-means clustering on the data. 
 
@@ -172,6 +184,7 @@ plot(cumsum(pve), xlab = "Principal Component",
 km.out <- kmeans(x, 3, nstart = 20)
 km.out$cluster
 ```
+
 ```{r}
 plot(x, col= (km.out$cluster + 1), 
      main = "K-Means Clustering Results with K = 3",
@@ -184,19 +197,26 @@ plot(x, col= (km.out$cluster + 1),
 km.out <- kmeans(x, 2, nstart = 20)
 km.out$cluster
 ```
+
 ```{r}
 plot(x, col= (km.out$cluster + 1), 
      main = "K-Means Clustering Results with K = 3",
      xlab= "", ylab= "")
 ```
-```
+
 
 
 (e) Now perform K-means clustering with K = 4, and describe your results. 
 ```{r}
-
+km.out <- kmeans(x, 4, nstart = 20)
+km.out$cluster
 ```
 
+```{r}
+plot(x, col= (km.out$cluster + 1), 
+     main = "K-Means Clustering Results with K = 3",
+     xlab= "", ylab= "")
+```
 
 (f) Now perform K-means clustering with K = 3 on the first two principal component score vectors, rather than on the raw data. That is, perform K-means clustering on the 60 × 2 matrix of which the first column is the first principal component score vector, and the second column is the second principal component score vector. Comment on the results.
 
