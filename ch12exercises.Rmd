@@ -93,15 +93,17 @@ points(cent2[1], cent2[2], col=3)
 
 12.5 In words, describe the results that you would expect if you performed K-means clustering of the eight shoppers in Figure 12.16, on the basis of their sock and computer purchases, with K = 2. Give three answers, one for each of the variable scalings displayed. Explain.
 
+Using clusters based on two-dimensional euclidean distance
+- least socks and computers vs more socks and computers
+- purchased computer vs no computer purchase
+- purchased computer vs no computer purchase
+
 
 
 12.6 We saw in Section 12.2.2 that the principal component loading and score vectors provide an approximation to a matrix, in the sense of (12.5). Specifically, the principal component score and loading vectors solve the optimization problem given in (12.6).
 
 Now, suppose that the M principal component score vectors zim, m = 1,...,M, are known. Using (12.6), explain that the first M principal component loading vectors φjm, m = 1,...,M, can be obtaining by performing M separate least squares linear regressions. In each regression, the principal component score vectors are the predictors, and one of the features of the data matrix is the response.
 
-```{r}
-
-```
 
 12.8 In Section 12.2.3, a formula for calculating PVE was given in Equation 12.10. We also saw that the PVE can be obtained using the sdev output of the prcomp() function. On the USArrests data, calculate PVE in two ways:
 
@@ -114,13 +116,27 @@ X <- data.matrix(scale(USArrests))
 
 (a) Using the sdev output of the prcomp() function, as was done in Section 12.2.3. 
 ```{r}
-pcob <- prcomp(X)
-summary(pcob)
+pr.out <- prcomp(X)
+pr.var <- pr.out$sdev^2
+pve <- pr.var / sum(pr.var)
+pve
 ```
 
 (b) By applying Equation 12.10 directly. That is, use the prcomp() function to compute the principal component loadings. Then, use those loadings in Equation 12.10 to obtain the PVE. These two approaches should give the same results. 
 ```{r}
-
+loadings = pr.out$rotation
+pve2 = rep(NA, 4)
+dmean = apply(X, 2, mean)
+dsdev = sqrt(apply(X, 2, var))
+dsc = sweep(X, MARGIN=2, dmean, "-")
+dsc = sweep(dsc, MARGIN=2, dsdev, "/")
+for (i in 1:4) {
+  proto_x = sweep(dsc, MARGIN=2, loadings[,i], "*")
+  pc_x = apply(proto_x, 1, sum)
+  pve2[i] = sum(pc_x^2)
+}
+pve2 = pve2/sum(dsc^2)
+pve2
 ```
 
 
@@ -128,29 +144,27 @@ summary(pcob)
 
 (a) Using hierarchical clustering with complete linkage and Euclidean distance, cluster the states. 
 ```{r}
-hc.complete <- hclust(dist(x), method= "complete"); hc.complete
+hc.complete <- hclust(dist(USArrests), method= "complete"); plot(hc.complete)
 ```
+
 
 (b) Cut the dendrogram at a height that results in three distinct clusters. Which states belong to which clusters?
 
 ```{r}
-plot(hc.complete)
-```
-
-```{r}
 cutree(hc.complete, 3)
+```
+```{r}
+table(cutree(hc.complete, 3))
 ```
 
 
 (c) Hierarchically cluster the states using complete linkage and Euclidean distance, after scaling the variables to have standard deviation one. 
 ```{r}
-xsc <- scale(x)
+xsc <- scale(USArrests)
 s.hc.complete <- hclust(dist(xsc), method= "complete")
 plot(s.hc.complete)
 ```
-```{r}
-cutree(s.hc.complete, 3)
-```
+
 
 (d) What effect does scaling the variables have on the hierarchical clustering obtained? In your opinion, should the variables be scaled before the inter-observation dissimilarities are computed? Provide a justification for your answer.
 ```{r}
@@ -158,79 +172,59 @@ par(mfrow = c(1,2))
 plot(hc.complete)
 plot(s.hc.complete)
 ```
-I notice a slight difference between height on the scaled hierarchical clusters vs the un-scaled. 
+
+```{r}
+cutree(s.hc.complete, 3)
+```
+
+```{r}
+table(cutree(s.hc.complete, 3))
+```
+
+```{r}
+table(cutree(s.hc.complete, 3), cutree(hc.complete, 3))
+```
+
+Scaling the variables effects the max height of the dendogram.
 
 12.10 In this problem, you will generate simulated data, and then perform PCA and K-means clustering on the data. 
 
 (a) Generate a simulated data set with 20 observations in each of three classes (i.e. 60 observations total), and 50 variables. Hint: There are a number of functions in R that you can use to generate data. One example is the rnorm() function; runif() is another option. Be sure to add a mean shift to the observations in each class so that there are three distinct classes. 
 ```{r}
 set.seed(42)
-x <- matrix(rnorm(60), ncol = 3)
-x[1:20, 1] <- x[1:20, 1] + 2
-x[1:20, 2] <- x[1:20, 2] - 4
-x[1:20, 3] <- x[1:20, 3] + 6
+x <- matrix(rnorm(20*3*50, mean = 0, sd=0.001), ncol = 50)
+x[1:20, 2] = 1
+x[21:40, 1] = 2
+x[21:40, 2] = 2
+x[41:60, 1] = 1
 ```
 
 (b) Perform PCA on the 60 observations and plot the first two principal component score vectors. Use a different color to indicate the observations in each of the three classes. If the three classes appear separated in this plot, then continue on to part (c). If not, then return to part (a) and modify the simulation so that there is greater separation between the three classes. Do not continue to part (c) until the three classes show at least some separation in the first two principal component score vectors.
 ```{r}
-pr.out <- prcomp(x, scale= TRUE)
-names(pr.out)
+pca.out <- prcomp(x)
+summary(pca.out)
 #center = mean
 #scale = sd
 ```
 
 ```{r}
-pr.out$center
-pr.out$scale
+pca.out$x[,1:2]
 ```
 ```{r}
 pr.out$rotation
 ```
+
 ```{r}
-dim(pr.out$x)
-```
-```{r}
-biplot(pr.out, scale= 0)
-```
-```{r}
-pr.out$rotation = -pr.out$rotation
-pr.out$x = -pr.out$x
-biplot(pr.out, scale= 0)
-```
-```{r}
-pr.out$sdev
-```
-```{r}
-pr.var <- pr.out$sdev^2
-pr.var
-```
-```{r}
-pve <- pr.var / sum(pr.var)
-pve
-```
-```{r}
-par(mfrow= c(1,2))
-plot(pve, xlab= "Principal Component",
-     ylab = "Proportion of Variance Explained", ylim= c(0,1),
-     type = "b")
-plot(cumsum(pve), xlab = "Principal Component", 
-     ylab = "Cumulative Proportion of Variance Explained", 
-     ylim= c(0,1), type= "b")
+plot(pca.out$x[,1:2], col=2:4, xlab="Z1", ylab="Z2", pch=19) 
 ```
 
 
 (c) Perform K-means clustering of the observations with K = 3. How well do the clusters that you obtained in K-means clustering compare to the true class labels? Hint: You can use the table() function in R to compare the true class labels to the class labels obtained by clustering. Be careful how you interpret the results: K-means clustering will arbitrarily number the clusters, so you cannot simply check whether the true class labels and clustering labels are the same. 
 ```{r}
 km.out <- kmeans(x, 3, nstart = 20)
-km.out$cluster
+table(km.out$cluster, c(rep(1,20), rep(2,20), rep(3,20)))
 ```
-
-```{r}
-plot(x, col= (km.out$cluster + 1), 
-     main = "K-Means Clustering Results with K = 3",
-     xlab= "", ylab= "")
-```
-
+Three equal clusters of 20 observations. 
 
 (d) Perform K-means clustering with K = 2. Describe your results. 
 ```{r}
@@ -238,12 +232,7 @@ km.out <- kmeans(x, 2, nstart = 20)
 km.out$cluster
 ```
 
-```{r}
-plot(x, col= (km.out$cluster + 1), 
-     main = "K-Means Clustering Results with K = 3",
-     xlab= "", ylab= "")
-```
-
+The third class gets clustered in with class 1 or 2.
 
 
 (e) Now perform K-means clustering with K = 4, and describe your results. 
@@ -251,21 +240,23 @@ plot(x, col= (km.out$cluster + 1),
 km.out <- kmeans(x, 4, nstart = 20)
 km.out$cluster
 ```
-
-```{r}
-plot(x, col= (km.out$cluster + 1), 
-     main = "K-Means Clustering Results with K = 3",
-     xlab= "", ylab= "")
-```
+One of the previous clusters is split into two so that there are four total.
 
 (f) Now perform K-means clustering with K = 3 on the first two principal component score vectors, rather than on the raw data. That is, perform K-means clustering on the 60 × 2 matrix of which the first column is the first principal component score vector, and the second column is the second principal component score vector. Comment on the results.
 
 ```{r}
-
+km.out = kmeans(pca.out$x[,1:2], 3, nstart=20)
+table(km.out$cluster, c(rep(1,20), rep(2,20), rep(3,20)))
 ```
+Three equal clusters of 20 observations. 
 
 (g) Using the scale() function, perform K-means clustering with K = 3 on the data after scaling each variable to have standard deviation one. How do these results compare to those obtained in (b)? Explain.
 ```{r}
-
+km.out = kmeans(scale(x), 3, nstart=20)
+km.out$cluster
+```
+```{r}
+table(km.out$cluster, c(rep(1,20), rep(2,20), rep(3,20)))
 ```
 
+The results are not good as in part b, scaling the observations effects the distance between them.
