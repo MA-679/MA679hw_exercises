@@ -18,37 +18,77 @@ pacman::p_load(e1071, ROCR, ISLR2, caTools)
 
 (a) Plot the observations. 
 ```{r}
-
+df <- matrix(c(1,1,0,5,6,4,4,3,4,1,2,0), nrow=6)
 ```
+
+```{r}
+plot(df)
+```
+
 
 (b) Randomly assign a cluster label to each observation. You can use the sample() command in R to do this. Report the cluster labels for each observation. 
 ```{r}
-
+set.seed(100)
+labels <- sample(2, nrow(df), replace = TRUE)
+labels
 ```
 
 (c) Compute the centroid for each cluster. 
 ```{r}
+cent1 <- c(mean(df[labels == 1, 1]), mean(df[labels == 1, 2]))
+cent2 <- c(mean(df[labels == 2, 1]), mean(df[labels == 2, 2]))
 
+cent1
+cent2
 ```
 
 (d) Assign each observation to the centroid to which it is closest, in terms of Euclidean distance. Report the cluster labels for each observation. 
 ```{r}
-
+plot(df[,1], df[,2], col=(labels+1))
+points(cent1[1], cent1[2], col=2)
+points(cent2[1], cent2[2], col=3)
 ```
 
 (e) Repeat (c) and (d) until the answers obtained stop changing. 
 ```{r}
-
+euclid = function(a, b) {
+  return(sqrt((a[1] - b[1])^2 + (a[2]-b[2])^2))
+}
+assign_labels = function(df, cent1, cent2) {
+  labels = rep(NA, nrow(df))
+  for (i in 1:nrow(df)) {
+    if (euclid(df[i,], cent1) < euclid(df[i,], cent2)) {
+      labels[i] = 1
+    } else {
+      labels[i] = 2
+    }
+  }
+  return(labels)
+}
+labels = assign_labels(df, cent1, cent2)
+labels
 ```
+```{r}
+last_labels = rep(-1, 6)
+while (!all(last_labels == labels)) {
+  last_labels = labels
+  cent1 = c(mean(df[labels==1, 1]), mean(df[labels==1, 2]))
+  cent2 = c(mean(df[labels==2, 1]), mean(df[labels==2, 2]))
+  print(cent1)
+  print(cent2)
+  labels = assign_labels(df, cent1, cent2)
+}
+```
+```{r}
+labels
+```
+
 
 (f) In your plot from (a), color the observations according to the cluster labels obtained.
 ```{r}
-
-```
-
-
-```{r}
-
+plot(df[,1], df[,2], col=(labels+1))
+points(cent1[1], cent1[2], col=2)
+points(cent2[1], cent2[2], col=3)
 ```
 
 12.5 In words, describe the results that you would expect if you performed K-means clustering of the eight shoppers in Figure 12.16, on the basis of their sock and computer purchases, with K = 2. Give three answers, one for each of the variable scalings displayed. Explain.
